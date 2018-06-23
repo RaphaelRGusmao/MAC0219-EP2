@@ -1,0 +1,131 @@
+################################################################################
+#                                IME-USP (2018)                                #
+#              MAC0219 - Programacao Concorrente e Paralela - EP2              #
+#                                                                              #
+#                                  Relatorio                                   #
+#                                                                              #
+#                       Marcelo Schmitt   - NUSP 9297641                       #
+#                       Raphael R. Gusmao - NUSP 9778561                       #
+################################################################################
+
+- Para este EP, utilizamos uma Tesla K20C disponivel na Rede Linux do IME-USP.
+
+- O algoritmo utilizado para fazer a reducao na GPU foi:
+    - Em cada loop a lista de matrizes eh dividida por 2  e  a  primeira  metade
+      passa a ser o resultado da reducao das duas metades.
+
+    - No caso, cada thread eh responsavel por fazer a reducao de 2 matrizes.
+      Assim, em cada loop, supondo que a lista tenha n matrizes nesse momento,
+      temos n/2 threads trabalhando.
+
+    - Isso eh repetido ate que sobre uma unica matriz, que  eh  o  resultado  da
+    reducao total.
+
+- Para calcular min(a, b) sem causar divergencia de branch, utilizamos operacoes
+  bitwise: (b ^ ((a ^ b) & -(a < b)))
+
+################################################################################
+
+Breve discurso sobre a viabilidade de reduzir S com respeito a (+) na GPU:
+
+Como uma operação de redução  (+)  é  por  definição  facilmente  paralelizável,
+fazer uso de GPU para efetuar operações de redução não é só viável mas também  é
+muito mais eficiente em termos de tempo de execução do que fazer uma redução com
+uma  CPU.  Justamente   pela   possibilidade   de   efetuar   várias   operações
+simultâneamente durante uma redução, o ganho de tempo ao usar GPU  é  expressivo
+(cerca de <N> vezes mais rápido que numa CPU), e isso se dá pelo fato de  a  GPU
+possuir muito mais núcleos de processamento que uma CPU. Com mais núclos que uma
+CPU, uma GPU pode fazer muito mais operações paralelas  por  ciclo  de  clock  e
+consequentemente muito mais rapidamente deve concluir uma operação  de  redução.
+No caso particular de reduzir S com respeito a (+),  a  GPU  pode  designar  uma
+thread diferente para realizar a operação de redução de cada um  dos  pares  An,
+Bn de matrizes pertencentes a S. Fazendo lg(quantidade_de_matrizes) operações de
+redução a cada etapa de processamento, a GPU consegue  obter  um  bom  ganho  de
+desempenho usando o paradigma SMIT.
+
+################################################################################
+
+O EP2 recebe como argumentos:
+    - matrix_list_path:
+        arquivo contendo todas as matrizes 3x3
+    - implementation:
+        A implementacao que sera utilizada
+        Comando opcional, o padrao eh utilizando a GPU
+        ("c" = CPU (sequencial), "g" = GPU (CUDA))
+    - debug
+        Comando opcional, desativado por padrao
+        ("d" = modo debug)
+
+Para executar o EP2 no terminal, digite:
+    $ make
+    $ ./main <matrix_list_path> <implementation> <debug>
+
+    ou apenas:
+
+    $ make
+    $ ./main <matrix_list_path>
+
+################################################################################
+
+Testes realizados:
++--------------------------------------------------------+
+|                        CPU         GPU                 |
+|                      +------------+------------------+ |
+| matrizes:  1.000.000 | 0.031583000 s | 2.302840000 s | |
+| matrizes:    100.000 | 0.004004410 s | 0.026078800 s | |
+| matrizes:     10.000 | 0.000619368 s | 0.003302380 s | |
+| matrizes:      1.000 | 0.000091568 s | 0.001553750 s | |
+| matrizes:        100 | 0.000006450 s | 0.000901491 s | |
+| matrizes:         10 | 0.000003851 s | 0.000818842 s | |
+| matrizes:          2 | 0.000002833 s | 0.000492820 s | |
+|                      +------------+------------------+ |
++--------------------------------------------------------+
+
+################################################################################
+
+- Os testes foram realizados com  listas  geradas  automaticamente  com  numeros
+  aleatorios entre 0 e 10.000.
+
+- Para gerar listas desse tipo, digite:
+    $ python test.py <quantidade_de_matrizes>
+  As matrizes serao salvas em "test_py.txt"
+
+- Ha tambem uma funcao que verifica se a resposta esta correta. Basta executar:
+    $ ./main test_py.txt > ans
+    $ python test.py
+
+################################################################################
+
+Exemplo de saida com GPU (debug ativado):
++------------------------------------------------------------------------------+
+| Reading inputs...
+| Size: 100000
+|
+| ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[ START ]
+| GPU
+| Reduction time: 0.0260788 s
+| ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[ END ]
+|
+| 0       0       0
+| 0       0       0
+| 0       0       0
+|
++------------------------------------------------------------------------------+
+
+Exemplo de saida com CPU (debug ativado):
++------------------------------------------------------------------------------+
+| Reading inputs...
+| Size: 100000
+|
+| ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[ START ]
+| CPU
+| Reduction time: 0.00400441 s
+| ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[ END ]
+|
+| 0       0       0
+| 0       0       0
+| 0       0       0
+|
++------------------------------------------------------------------------------+
+
+################################################################################

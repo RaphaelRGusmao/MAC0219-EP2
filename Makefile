@@ -1,17 +1,39 @@
-CC=nvcc
-CFLAGS=-lm -O2 -w -D Tile_Width=128 -arch sm_30
-DEVICE_ID=0
+################################################################################
+#                                IME-USP (2018)                                #
+#              MAC0219 - Programacao Concorrente e Paralela - EP2              #
+#                                                                              #
+#                                   Makefile                                   #
+#                                                                              #
+#                       Marcelo Schmitt   - NUSP 9297641                       #
+#                       Raphael R. Gusmao - NUSP 9778561                       #
+################################################################################
 
-all: ep2
+.PHONY: clean
+CC = nvcc
+CFLAGS = -lm -O2 -w -Xptxas --opt-level=3 -arch sm_30
+OBJS = \
+	matrix.o \
+	main.o
 
-ep2.o: ep2.cu
-	$(CC) $(CFLAGS) -c ep2.cu
+all: main
 
-ep2: ep2.o
-	$(CC) $(CFLAGS) ep2.o -o ep2
+main: $(OBJS)
+	$(CC) $(CFLAGS) $^ -o $@
+	make clean
 
-run:
-	./ep2 10 1
+%.o: %.c %.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.cu
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf *.o ep2
+	rm -f *.o *~
+
+run:
+	clear
+	make
+	clear
+	./main "test_py.txt" g d
+
+################################################################################
